@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity
         {
             @Override
             public void onClick(View v) {
-                locationManager.requestLocationUpdates("gps", 1000, 0, locationListener);
+                locationManager.requestLocationUpdates(locationManager.NETWORK_PROVIDER, 1000, 0, locationListener);
             }
         });
 
