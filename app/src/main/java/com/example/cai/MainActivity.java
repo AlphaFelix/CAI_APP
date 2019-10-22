@@ -28,6 +28,7 @@ public class MainActivity extends AppCompatActivity
     private LocationListener locationListener;
 
     public static final int PERMISSION_REQUEST_SMS = 1;
+    public static final int PERMISSION_REQUEST_GPS = 10;
 
     public MainActivity() {
     }
@@ -81,17 +82,16 @@ public class MainActivity extends AppCompatActivity
             {
                 requestPermissions(new String[] {
                         Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET
-                }, 10);
-
-                return;
+                },  PERMISSION_REQUEST_GPS);
             }
+
         }
 
         button_get_gps.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v) {
-                locationManager.requestLocationUpdates(locationManager.NETWORK_PROVIDER, 1000, 0, locationListener);
+                getGPS();
             }
         });
 
@@ -104,18 +104,35 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
-    public void sendSMS(String phoneNo, String msg)
-    {
-        try
-        {
-            SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(phoneNo, null, msg, null, null);
-            Toast.makeText(getApplicationContext(), "Message Sent", Toast.LENGTH_LONG).show();
-        } catch (Exception ex)
-        {
-            Toast.makeText(getApplicationContext(), ex.getMessage().toString(), Toast.LENGTH_LONG).show();
-            ex.printStackTrace();
+    private void closeNow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            finishAffinity();
+        } else {
+            finish();
         }
+    }
+
+    public void getGPS()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+        {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+            {
+                if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED)
+                {
+                    requestPermissions(new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.INTERNET
+                    },  PERMISSION_REQUEST_GPS);
+                }
+                else {
+                    locationManager.requestLocationUpdates(locationManager.NETWORK_PROVIDER, 1000, 0, locationListener);
+                }
+            }
+        }
+        else
+            locationManager.requestLocationUpdates(locationManager.NETWORK_PROVIDER, 1000, 0, locationListener);
     }
 
     // Check permission and send SMS
@@ -126,8 +143,6 @@ public class MainActivity extends AppCompatActivity
         lat     = editText_lat.getText().toString();
         longi   = editText_long.getText().toString();
 
-        String full_msg = String.format("%s\nLatitude : %s\nLongitude : %s", message, lat, longi);
-
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M)
         {
             if (checkSelfPermission(Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED)
@@ -137,10 +152,28 @@ public class MainActivity extends AppCompatActivity
                 requestPermissions(permissions, PERMISSION_REQUEST_SMS);
             }
             else
-                sendSMS(phoneNo, full_msg);
+                sendSMS(phoneNo, message);
         }
         else
-            sendSMS(phoneNo, full_msg);
+            sendSMS(phoneNo, message);
+    }
+
+    public void sendSMS(String phoneNo, String msg)
+    {
+        if(lat.trim().length() > 0 && longi.trim().length() > 0)
+        {
+            msg = String.format("%s\nLatitude : %s\nLongitude : %s", msg, lat, longi);
+        }
+        try
+        {
+            SmsManager smsManager = SmsManager.getDefault();
+            smsManager.sendTextMessage(phoneNo, null, msg, null, null);
+            Toast.makeText(getApplicationContext(), "Message Sent", Toast.LENGTH_LONG).show();
+        } catch (Exception ex)
+        {
+            Toast.makeText(getApplicationContext(), ex.getMessage().toString(), Toast.LENGTH_LONG).show();
+            ex.printStackTrace();
+        }
     }
 
     @Override
@@ -161,13 +194,14 @@ public class MainActivity extends AppCompatActivity
                     // functionality that depends on this permission.
                     Toast.makeText(getApplicationContext(), "Permission denied to send SMS", Toast.LENGTH_SHORT).show();
                 }
-
                 return;
             }
 
-            case 10:
+            case PERMISSION_REQUEST_GPS:
                 if (grantResults.length>0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                    locationManager.requestLocationUpdates("gps", 1000, 0, locationListener);
+                    getGPS();
+                else
+                    closeNow();
                 return;
         }
     }
